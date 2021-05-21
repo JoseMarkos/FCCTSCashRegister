@@ -27,18 +27,6 @@ const CurrencyUnits: NumberObj = {
   "ONE HUNDRED": 100,
 };
 
-const searchCurrencyUnit = (str: string, cid: Custom[][]): number => {
-  let n = 0;
-
-  cid.forEach((x) => {
-    if (x[0] === str) {
-      n = x[1] as number;
-    }
-  });
-
-  return n;
-};
-
 const searchIndexOfCurrencyUnit = (str: string, cid: Custom[][]): number => {
   for (const iterator of cid) {
     if (iterator[0] === str) {
@@ -49,36 +37,37 @@ const searchIndexOfCurrencyUnit = (str: string, cid: Custom[][]): number => {
   return -1;
 };
 
-const getUpdatedCID = (change: number, cid: Custom[][], box: Custom[]): Custom[][] => {
-  let updatedCID: Custom[][] = [...cid];
-  const boxUnit: number = box[1] as number;
+const getBoxChange = (
+  box: Custom[],
+  change: number,
+  cid: Custom[][],
+): Custom[] => {
   const boxName: string = box[0] as string;
-  
+  const boxUnit: number = CurrencyUnits[boxName];
+
   if (change > boxUnit) {
     const boxFounds = getBoxFunds(boxName, cid);
-    const indexInCID = searchIndexOfCurrencyUnit(boxName, cid); 
-    
+
     if (boxFounds > 0) {
-      let newBoxFounds = 0;
-      
       if (boxFounds > change) {
-        const unitsInChange = Number((change / boxUnit).toFixed(0));
-        const amountToRemove = unitsInChange * boxUnit;
-        newBoxFounds = boxFounds - amountToRemove + (change - amountToRemove);
+        const match = (change / boxUnit).toString().match(/\d+/);
+        const unitsInChange: number = match ? Number(match[0]) : 0;
+        const boxChange = unitsInChange * boxUnit;
+
+        return [boxName, boxChange];
       }
 
-      updatedCID[indexInCID][1] = newBoxFounds;
+      return [boxName, boxFounds];
     }
   }
-  return updatedCID;
+
+  return [];
 };
 
-const divisibles: string[] = ["PENNY", "NICKEL", "DIME", "QUARTER"];
-
-const getBoxFunds = (str: string, cid: Custom[][]) : number => {
+const getBoxFunds = (str: string, cid: Custom[][]): number => {
   const boxIndex = searchIndexOfCurrencyUnit(str, cid);
   return boxIndex ? cid[boxIndex][1] as number : 0;
-}
+};
 
 const getFunds = (cid: Custom[][]) => {
   let founds: number = 0;
@@ -92,14 +81,10 @@ const getFunds = (cid: Custom[][]) => {
 
 function checkCashRegister(price: number, cash: number, cid: Custom[][]) {
   const founds = getFunds(cid);
-  console.log(founds + "founds");
-  console.log(cash + " cash");
   let change = cash - price;
-  console.log(change + " change");
 
   if (founds === change) {
-    const obj: RegisterResponse = { status: Status.CLOSED, change: cid };
-    return obj;
+    return { status: Status.CLOSED, change: cid };
   }
 
   const objInsufficientFunds: RegisterResponse = {
@@ -107,36 +92,37 @@ function checkCashRegister(price: number, cash: number, cid: Custom[][]) {
     change: [],
   };
 
-
   if (founds < change) {
     return objInsufficientFunds;
   }
 
-  const obj: RegisterResponse = { status: Status.OPEN, change: cid };
-  const objExample: RegisterResponse = {
-    status: Status.OPEN,
-    change: [
-      ["TWENTY", 60],
-      ["TEN", 20],
-      ["FIVE", 15],
-      ["ONE", 1],
-      ["QUARTER", 0.5],
-      ["DIME", 0.2],
-      ["PENNY", 0.04],
-    ],
-  };
+  const objOpen: RegisterResponse = { status: Status.OPEN, change: cid };
+  const reversedCid = cid.reverse();
+  let changeArr: Custom[][] = [];
+  let newChange = change;
 
-  pushBoxFounds(cid, ['', 2]);
-  return obj;
+  reversedCid.forEach((x) => {
+    const box = getBoxChange(x, newChange, reversedCid);
+
+    if (box.length) {
+      changeArr.push(box);
+      newChange -= (box[1] as number);
+      newChange = Number(newChange.toFixed(2));
+    }
+  });
+
+  const changeCIDFounds = getFunds(changeArr);
+
+  if (change !== changeCIDFounds) {
+    return objInsufficientFunds;
+  }
+
+  objOpen.change = changeArr;
+
+  return objOpen;
 }
 
-const pushBoxFounds = (cid: Custom[][], box: Custom[]): void => {
-  cid.push(box);
-
-  return;
-};
-
-/* console.log(
+console.log(
   checkCashRegister(19.5, 20, [
     ["PENNY", 1.01],
     ["NICKEL", 2.05],
@@ -149,7 +135,7 @@ const pushBoxFounds = (cid: Custom[][], box: Custom[]): void => {
     ["ONE HUNDRED", 100],
   ]),
 );
- */
+
 console.log(
   checkCashRegister(3.26, 100, [
     ["PENNY", 1.01],
@@ -178,7 +164,6 @@ console.log(
   ]),
 );
 
-/*
 console.log(
   checkCashRegister(19.5, 20, [
     ["PENNY", 0.01],
@@ -191,6 +176,18 @@ console.log(
     ["TWENTY", 0],
     ["ONE HUNDRED", 0],
   ]),
-); */
+);
 
-// console.log(checkCashRegister(19.5, 20, [["PENNY", 0.5], ["NICKEL", 0], ["DIME", 0], ["QUARTER", 0], ["ONE", 0], ["FIVE", 0], ["TEN", 0], ["TWENTY", 0], ["ONE HUNDRED", 0]]))
+console.log(
+  checkCashRegister(19.5, 20, [
+    ["PENNY", 0.5],
+    ["NICKEL", 0],
+    ["DIME", 0],
+    ["QUARTER", 0],
+    ["ONE", 0],
+    ["FIVE", 0],
+    ["TEN", 0],
+    ["TWENTY", 0],
+    ["ONE HUNDRED", 0],
+  ]),
+);
