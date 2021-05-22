@@ -27,16 +27,6 @@ const CurrencyUnits: NumberObj = {
   "ONE HUNDRED": 100,
 };
 
-const searchIndexOfCurrencyUnit = (str: string, cid: Custom[][]): number => {
-  for (const iterator of cid) {
-    if (iterator[0] === str) {
-      return cid.indexOf(iterator);
-    }
-  }
-
-  return -1;
-};
-
 const getBoxChange = (
   box: Custom[],
   change: number,
@@ -45,28 +35,25 @@ const getBoxChange = (
   const boxName: string = box[0] as string;
   const boxUnit: number = CurrencyUnits[boxName];
 
-  if (change > boxUnit) {
-    const boxFounds = getBoxFunds(boxName, cid);
-
-    if (boxFounds > 0) {
-      if (boxFounds > change) {
-        const match = (change / boxUnit).toString().match(/\d+/);
-        const unitsInChange: number = match ? Number(match[0]) : 0;
-        const boxChange = unitsInChange * boxUnit;
-
-        return [boxName, boxChange];
-      }
-
-      return [boxName, boxFounds];
-    }
+  if (change < boxUnit) { 
+    return [];
+  }
+  
+  const boxFounds = box[1];
+  
+  if (boxFounds < 1) {
+    return [];
   }
 
-  return [];
-};
-
-const getBoxFunds = (str: string, cid: Custom[][]): number => {
-  const boxIndex = searchIndexOfCurrencyUnit(str, cid);
-  return boxIndex ? cid[boxIndex][1] as number : 0;
+  if (boxFounds > change) {
+    const match = (change / boxUnit).toString().match(/\d+/);
+    const unitsInChange: number = match ? Number(match[0]) : 0;
+    const boxChange = unitsInChange * boxUnit;
+    
+    return [boxName, boxChange];
+  }
+  
+  return [boxName, boxFounds];
 };
 
 const getFunds = (cid: Custom[][]) => {
