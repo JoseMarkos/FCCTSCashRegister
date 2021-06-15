@@ -4,7 +4,7 @@ import Status from "./Status.ts";
 
 export default class Register {
   private readonly currencyUnits: NumberObj = {};
-  private initialCID: Custom[][] = [];
+  private reverseCID: Custom[][] = [];
 
   constructor(currencyUnits: NumberObj){
     this.currencyUnits = currencyUnits;
@@ -15,8 +15,7 @@ export default class Register {
     cash: number,
     cid: Custom[][]): RegisterResponse {
 
-    this.initialCID = cid;
-    const founds    = this.getFunds(this.initialCID);
+    const founds    = this.getFunds(cid);
     const change    = cash - price;
   
     if (founds === change) return { status: Status.CLOSED, change: cid };
@@ -28,8 +27,9 @@ export default class Register {
   
     if (founds < change) return insufficientFunds;
   
-    const newCID       = this.getNewCID(change);
-    const newCIDFounds = this.getFunds(newCID);
+    this.reverseCID     = cid.reverse();
+    const newCID        = this.getNewCID(change);
+    const newCIDFounds  = this.getFunds(newCID);
   
     if (change !== newCIDFounds) return insufficientFunds;
   
@@ -38,10 +38,9 @@ export default class Register {
 
   private getNewCID(change: number): Custom[][] {
     const newCID: Custom[][]  = [];
-    const reverseCID          = this.initialCID.reverse();
     let newCIDChange          = change;
   
-    reverseCID.forEach((box) => {
+    this.reverseCID.forEach((box) => {
       const newBox = this.getBoxChange(box, newCIDChange);
   
       if (newBox.length) {
