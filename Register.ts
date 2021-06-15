@@ -16,7 +16,7 @@ export default class Register {
     cid: Custom[][]): RegisterResponse {
 
     this.initialCID = cid;
-    const founds    = this.getFunds(cid);
+    const founds    = this.getFunds(this.initialCID);
     const change    = cash - price;
   
     if (founds === change) return { status: Status.CLOSED, change: cid };
@@ -41,8 +41,6 @@ export default class Register {
     const reverseCID          = this.initialCID.reverse();
     let newCIDChange          = change;
   
-    console.log(reverseCID);
-    
     reverseCID.forEach((box) => {
       const newBox = this.getBoxChange(box, newCIDChange);
   
